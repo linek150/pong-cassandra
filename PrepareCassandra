@@ -1,0 +1,18 @@
+CREATE KEYSPACE pong_cassandra
+WITH replication = {'class':'SimpleStrategy', 'replication_factor' : 3};
+
+USE pong_cassandra;
+
+CREATE TABLE Config(
+   config text PRIMARY KEY,
+   params list<int>
+   );
+
+CREATE TABLE Positions(
+   pos text PRIMARY KEY,
+   ball list<int>,
+   player1 int,
+   player2 int
+   );
+
+select broadcast_address from system.local;

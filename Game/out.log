@@ -1,0 +1,1 @@
+5126 INFO  c.d.driver.core.GuavaCompatibility: Detected Guava >= 19 in the classpath, using modern compatibility layer

@@ -1,0 +1,4 @@
+3254 INFO  c.d.driver.core.GuavaCompatibility: Detected Guava >= 19 in the classpath, using modern compatibility layer
+4150 INFO  com.datastax.driver.core.Native: Could not load JNR C Library, native system calls through this library will not be available (set this logger level to DEBUG to see the full stack trace).
+4151 INFO  c.datastax.driver.core.ClockFactory: Using java.lang.System clock to generate timestamps.
+8381 WARN  com.datastax.driver.core.NettyUtil: Found Netty's native epoll transport, but not running on linux-based operating system. Using NIO instead.
