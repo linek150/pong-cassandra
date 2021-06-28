@@ -4,11 +4,14 @@ import com.datastax.driver.core.*;
 
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 
 public class Game {
-
+    
+    private static PreparedStatement updatePosition;
     public static double[] calculateBallPosition(int dt, double[] ballPos, double direction, int vel) {
         // Calculate new ball position for a given time step
         double dr = vel*dt;
@@ -100,25 +103,25 @@ public class Game {
         }
 
         // Update Cassandra
-        PreparedStatement updatePosition = session.prepare("UPDATE pong_cassandra.Positions SET ball = [?, ?] WHERE pos = 'pos';")
-                .setConsistencyLevel(ConsistencyLevel.ANY);
         BoundStatement boundUpdate;
+        List ballPositionList= new ArrayList<Integer>();
         if(newBallPosition[0] == -1) {
             if(newBallPosition[2] == 0) {
-                boundUpdate = updatePosition.bind(-1, 0);
+                ballPositionList.add(-1);
+                ballPositionList.add(0);
             }
             else {
-                boundUpdate = updatePosition.bind(0, -1);
+
+                ballPositionList.add(0);
+                ballPositionList.add(-1);
             }
         }
         else {
-            boundUpdate = updatePosition.bind((int)newBallPosition[0], (int)newBallPosition[1]);
+            ballPositionList.add((int)newBallPosition[0]);
+            ballPositionList.add((int)newBallPosition[1]);
         }
+        boundUpdate=Game.updatePosition.bind(ballPositionList);
         ResultSet rsUpdate = session.execute(boundUpdate);
-        Row row_update = rsUpdate.one();
-        if(!row_update.getBool("[applied]")) {
-            System.out.println("Failed to update Cassandra");
-        }
 
         return newBallPosition;
     }
@@ -133,26 +136,20 @@ public class Game {
         double batWidth;
 
         // Cassandra code
-        Cluster cluster = Cluster.builder().addContactPoint("172.18.0.2").build();
+        Cluster cluster = Cluster.builder().addContactPoint("127.0.0.1").build();
         Session session = cluster.connect();
-
-        String createConfig = "CREATE TABLE IF NOT EXISTS pong_cassandra.Config(\n" +
+        
+        String createConfig = "CREATE TABLE IF NOT EXISTS pong_cassandra.config_(\n" +
                 "   config text PRIMARY KEY,\n" +
                 "   params list<int>\n" +
                 "   );";
         ResultSet rsCreate = session.execute(createConfig);
-        Row row_create = rsCreate.one();
-        if(!row_create.getBool("[applied]")) {
-            System.out.println("Failed to create Cassandra table");
-        }
+        
+        
 
-        String insertConfig = "INSERT INTO pong_cassandra.Config (config, params)"
+        String insertConfig = "INSERT INTO pong_cassandra.config_ (config, params)"
                 + " VALUES('config', [300, 200, 1, 11]);";
         ResultSet rsInsert = session.execute(insertConfig);
-        Row row_insert = rsInsert.one();
-        if(!row_insert.getBool("[applied]")) {
-            System.out.println("Failed to insert into Cassandra table");
-        }
 
         String createPositions = "CREATE TABLE IF NOT EXISTS pong_cassandra.Positions(\n" +
                 "   pos text PRIMARY KEY,\n" +
@@ -161,18 +158,9 @@ public class Game {
                 "   player2 int\n" +
                 "   );";
         ResultSet rsCreatePos = session.execute(createPositions);
-        Row row_create_pos = rsCreatePos.one();
-        if(!row_create_pos.getBool("[applied]")) {
-            System.out.println("Failed to create Cassandra table");
-        }
-
         String insertPositions = "INSERT INTO pong_cassandra.Positions (pos, ball, player1, player2)"
                 + " VALUES('pos', [150, 100], 100, 100);";
         ResultSet rsInsertPos = session.execute(insertPositions);
-        Row row_insert_pos = rsInsertPos.one();
-        if(!row_insert_pos.getBool("[applied]")) {
-            System.out.println("Failed to insert into Cassandra table");
-        }
 
         // Initial configuration
         boardSize = new double[]{300, 200};
@@ -180,6 +168,10 @@ public class Game {
         batWidth = 11;
         ballPos = new double[]{150, 100};
         direction = Math.random()*2*Math.PI;
+        
+        Game.updatePosition=session.prepare("UPDATE pong_cassandra.Positions SET ball = ? WHERE pos = 'pos';")
+                .setConsistencyLevel(ConsistencyLevel.ANY);
+
 
         // Main game loop
         while(true) {

@@ -3,7 +3,7 @@ WITH replication = {'class':'SimpleStrategy', 'replication_factor' : 3};
 
 USE pong_cassandra;
 
-CREATE TABLE Config(
+CREATE TABLE Config_(
    config text PRIMARY KEY,
    params list<int>
    );

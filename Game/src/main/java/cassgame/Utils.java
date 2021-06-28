@@ -5,7 +5,7 @@ import com.datastax.driver.core.*;
 public class Utils {
 
     public static int[] getConfig(Session session) {
-        String getConfig = "SELECT * FROM pong_cassandra.Config WHERE config == 'config';";
+        String getConfig = "SELECT * FROM pong_cassandra.config_ WHERE config == 'config';";
         ResultSet rsGetConf = session.execute(getConfig);
         Row row_get_conf = rsGetConf.one();
         return new int[]{
@@ -32,9 +32,9 @@ public class Utils {
     public static int getPlayerPosition(Session session, int playerID) {
         String getPosition;
         if (playerID == 0) {
-            getPosition = "SELECT player1 FROM pong_cassandra.Positions WHERE pos == 'pos';";
+            getPosition = "SELECT player1 FROM pong_cassandra.Positions WHERE pos = 'pos';";
         } else {
-            getPosition = "SELECT player2 FROM pong_cassandra.Positions WHERE pos == 'pos';";
+            getPosition = "SELECT player2 FROM pong_cassandra.Positions WHERE pos = 'pos';";
         }
         ResultSet rsGetPos = session.execute(getPosition);
         Row row_get_pos = rsGetPos.one();
