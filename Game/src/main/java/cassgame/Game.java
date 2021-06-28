@@ -5,7 +5,6 @@ import com.datastax.driver.core.*;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.ThreadLocalRandom;
 
 
 public class Game {
@@ -34,7 +33,7 @@ public class Game {
     }
 
     public static boolean checkIfLoser(Point2D intersection, double batWidth, int player, Session session) {
-        // Check if player lost when ball reached his boundary
+        // Check if player lost when ball reached his boundary (read his position from Cassandra)
         int playerPos = Utils.getPlayerPosition(session, player);
         double[] playerRange = new double[]{playerPos - (batWidth-1)/2, playerPos + (batWidth-1)/2};
         if(intersection.getY() < playerRange[0] || intersection.getY() > playerRange[1]) {
@@ -101,25 +100,25 @@ public class Game {
         }
 
         // Update Cassandra
-//        PreparedStatement updatePosition = session.prepare("UPDATE pong_cassandra.Positions SET ball = [?, ?] WHERE pos = 'pos';")
-//                .setConsistencyLevel(ConsistencyLevel.ANY);
-//        BoundStatement boundUpdate;
-//        if(newBallPosition[0] == -1) {
-//            if(newBallPosition[2] == 0) {
-//                boundUpdate = updatePosition.bind(-1, 0);
-//            }
-//            else {
-//                boundUpdate = updatePosition.bind(0, -1);
-//            }
-//        }
-//        else {
-//            boundUpdate = updatePosition.bind((int)newBallPosition[0], (int)newBallPosition[1]);
-//        }
-//        ResultSet rsUpdate = session.execute(boundUpdate);
-//        Row row_update = rsUpdate.one();
-//        if(!row_update.getBool("[applied]")) {
-//            System.out.println("Failed to update Cassandra");
-//        }
+        PreparedStatement updatePosition = session.prepare("UPDATE pong_cassandra.Positions SET ball = [?, ?] WHERE pos = 'pos';")
+                .setConsistencyLevel(ConsistencyLevel.ANY);
+        BoundStatement boundUpdate;
+        if(newBallPosition[0] == -1) {
+            if(newBallPosition[2] == 0) {
+                boundUpdate = updatePosition.bind(-1, 0);
+            }
+            else {
+                boundUpdate = updatePosition.bind(0, -1);
+            }
+        }
+        else {
+            boundUpdate = updatePosition.bind((int)newBallPosition[0], (int)newBallPosition[1]);
+        }
+        ResultSet rsUpdate = session.execute(boundUpdate);
+        Row row_update = rsUpdate.one();
+        if(!row_update.getBool("[applied]")) {
+            System.out.println("Failed to update Cassandra");
+        }
 
         return newBallPosition;
     }
@@ -134,46 +133,46 @@ public class Game {
         double batWidth;
 
         // Cassandra code
-//        Cluster cluster = Cluster.builder().addContactPoint("172.18.0.2").build();
-//        Session session = cluster.connect();
-//
-//        String createConfig = "CREATE TABLE IF NOT EXISTS pong_cassandra.Config(\n" +
-//                "   config text PRIMARY KEY,\n" +
-//                "   params list<int>\n" +
-//                "   );";
-//        ResultSet rsCreate = session.execute(createConfig);
-//        Row row_create = rsCreate.one();
-//        if(!row_create.getBool("[applied]")) {
-//            System.out.println("Failed to create Cassandra table");
-//        }
-//
-//        String insertConfig = "INSERT INTO pong_cassandra.Config (config, params)"
-//                + " VALUES('config', [300, 200, 1, 11]);";
-//        ResultSet rsInsert = session.execute(insertConfig);
-//        Row row_insert = rsInsert.one();
-//        if(!row_insert.getBool("[applied]")) {
-//            System.out.println("Failed to insert into Cassandra table");
-//        }
-//
-//        String createPositions = "CREATE TABLE IF NOT EXISTS pong_cassandra.Positions(\n" +
-//                "   pos text PRIMARY KEY,\n" +
-//                "   ball list<int>,\n" +
-//                "   player1 int,\n" +
-//                "   player2 int\n" +
-//                "   );";
-//        ResultSet rsCreatePos = session.execute(createPositions);
-//        Row row_create_pos = rsCreatePos.one();
-//        if(!row_create_pos.getBool("[applied]")) {
-//            System.out.println("Failed to create Cassandra table");
-//        }
-//
-//        String insertPositions = "INSERT INTO pong_cassandra.Positions (pos, ball, player1, player2)"
-//                + " VALUES('pos', [150, 100], 100, 100);";
-//        ResultSet rsInsertPos = session.execute(insertPositions);
-//        Row row_insert_pos = rsInsertPos.one();
-//        if(!row_insert_pos.getBool("[applied]")) {
-//            System.out.println("Failed to insert into Cassandra table");
-//        }
+        Cluster cluster = Cluster.builder().addContactPoint("172.18.0.2").build();
+        Session session = cluster.connect();
+
+        String createConfig = "CREATE TABLE IF NOT EXISTS pong_cassandra.Config(\n" +
+                "   config text PRIMARY KEY,\n" +
+                "   params list<int>\n" +
+                "   );";
+        ResultSet rsCreate = session.execute(createConfig);
+        Row row_create = rsCreate.one();
+        if(!row_create.getBool("[applied]")) {
+            System.out.println("Failed to create Cassandra table");
+        }
+
+        String insertConfig = "INSERT INTO pong_cassandra.Config (config, params)"
+                + " VALUES('config', [300, 200, 1, 11]);";
+        ResultSet rsInsert = session.execute(insertConfig);
+        Row row_insert = rsInsert.one();
+        if(!row_insert.getBool("[applied]")) {
+            System.out.println("Failed to insert into Cassandra table");
+        }
+
+        String createPositions = "CREATE TABLE IF NOT EXISTS pong_cassandra.Positions(\n" +
+                "   pos text PRIMARY KEY,\n" +
+                "   ball list<int>,\n" +
+                "   player1 int,\n" +
+                "   player2 int\n" +
+                "   );";
+        ResultSet rsCreatePos = session.execute(createPositions);
+        Row row_create_pos = rsCreatePos.one();
+        if(!row_create_pos.getBool("[applied]")) {
+            System.out.println("Failed to create Cassandra table");
+        }
+
+        String insertPositions = "INSERT INTO pong_cassandra.Positions (pos, ball, player1, player2)"
+                + " VALUES('pos', [150, 100], 100, 100);";
+        ResultSet rsInsertPos = session.execute(insertPositions);
+        Row row_insert_pos = rsInsertPos.one();
+        if(!row_insert_pos.getBool("[applied]")) {
+            System.out.println("Failed to insert into Cassandra table");
+        }
 
         // Initial configuration
         boardSize = new double[]{300, 200};
@@ -186,9 +185,9 @@ public class Game {
         while(true) {
 
             // If using Cassandra
-//            double[] newCoordinates = updateBallPosition(dt, ballPos, direction, vel, boardSize, batWidth, session);
+            double[] newCoordinates = updateBallPosition(dt, ballPos, direction, vel, boardSize, batWidth, session);
             // If not using Cassandra
-            double[] newCoordinates = updateBallPosition(dt, ballPos, direction, vel, boardSize, batWidth, null);
+//            double[] newCoordinates = updateBallPosition(dt, ballPos, direction, vel, boardSize, batWidth, null);
 
             System.out.println("Ball is at: "+Double.toString(newCoordinates[0])+" "+Double.toString(newCoordinates[1]));
 
